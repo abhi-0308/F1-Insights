@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 Stats Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="dashboard.js" defer></script>
+</head>
+<body>
+    <header class="header">
+        <img src="https://www.formula1.com/etc/designs/fom-website/images/f1_logo.svg" alt="F1 Logo" class="logo">
+        <h1>F1 Statistics Dashboard</h1>
+    </header>
+
+    <main class="dashboard-container">
+        <section class="standings-section large-section">
+            <div class="section-header">
+                <div class="standings-toggle">
+                    <button id="driverStandingsBtn" class="large-button active">Driver Standings</button>
+                    <button id="constructorStandingsBtn" class="large-button secondary">Constructor Standings</button>
+                </div>
+                <button id="refreshStandings" class="large-button secondary">Refresh Data</button>
+            </div>
+            <div class="table-container">
+                <div id="standings"></div>
+            </div>
+        </section>
+
+        <section class="lap-times-section large-section">
+            <div class="section-header">
+                <h2 class="section-title">Last Race Lap Times</h2>
+                <button id="refreshLapTimes" class="large-button secondary">Refresh Data</button>
+            </div>
+            <div class="chart-container extra-large-chart">
+                <canvas id="lapChart"></canvas>
+            </div>
+        </section>
+
+        <section class="comparison-section large-section">
+            <div class="section-header">
+                <h2 class="section-title">Driver Comparison</h2>
+                <div class="comparison-controls">
+                    <select id="driver1Select" class="large-select">
+                        <option value="">Select Driver 1</option>
+                    </select>
+                    <select id="driver2Select" class="large-select">
+                        <option value="">Select Driver 2</option>
+                    </select>
+                    <button id="compareDrivers" class="large-button">Compare</button>
+                </div>
+            </div>
+            <div id="comparisonContainer">
+                <div class="empty-state">
+                    <p>Select two drivers and click "Compare" to see their head-to-head results</p>
+                </div>
+                <div id="comparisonResults" style="display:none;"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="large-footer">
+        <p>Data provided by Ergast API • Last updated: <span id="updateTime"></span></p>
+        <p>MADE BY: ABHINAY SELVAKUMAR</p>
+    </footer>
+</body>
+</html>

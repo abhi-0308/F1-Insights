@@ -1,0 +1,297 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #0F0F0F;
+    color: #FFFFFF;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.header {
+    background-color: #000000;
+    padding: 20px;
+    margin-bottom: 30px;
+    border-bottom: 3px solid #FF1801;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.logo {
+    height: 50px;
+    margin-right: 20px;
+}
+
+h1, h2, h3 {
+    color: #FF1801;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px;
+}
+
+.large-section {
+    margin-bottom: 50px;
+    background-color: #1A1A1A;
+    padding: 25px;
+    border-radius: 8px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.standings-toggle {
+    display: flex;
+    gap: 10px;
+}
+
+.table-container {
+    overflow-x: auto;
+    margin: 20px auto;
+    max-width: 95%;
+    border-radius: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #222;
+    color: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: center;
+    border: 1px solid #333;
+}
+
+th {
+    background-color: #FF1801;
+    color: white;
+    font-weight: bold;
+}
+
+.large-button {
+    background-color: #FF1801;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.large-button:hover {
+    background-color: #C40000;
+}
+
+.large-button.secondary {
+    background-color: #333;
+}
+
+.large-button.active {
+    background-color: #FF1801;
+}
+
+.chart-container {
+    position: relative;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: #252525;
+    border-radius: 8px;
+    height: 500px;
+    width: 100%;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 30px;
+    color: #aaa;
+}
+
+.large-footer {
+    margin-top: 50px;
+    padding: 25px;
+    text-align: center;
+    border-top: 1px solid #333;
+}
+
+.loading-message {
+    text-align: center;
+    padding: 30px;
+    color: #FF1801;
+}
+
+.error-message {
+    color: #FF5252;
+    background-color: rgba(255, 82, 82, 0.1);
+    padding: 15px;
+    border-radius: 5px;
+    margin: 20px auto;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    .header {
+        flex-direction: column;
+        text-align: center;
+    }
+    .section-header {
+        flex-direction: column;
+    }
+    .standings-toggle {
+        flex-direction: column;
+        width: 100%;
+    }
+    .large-button {
+        width: 100%;
+    }
+}
+.comparison-content {
+    margin-top: 20px;
+}
+
+.comparison-chart-container {
+    height: 400px;
+    margin-bottom: 30px;
+}
+
+.race-results {
+    background-color: #252525;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.race-result {
+    padding: 15px;
+    background-color: #1a1a1a;
+    border-radius: 6px;
+}
+
+.driver-badges {
+    display: flex;
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.driver-badge {
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+/* Driver comparison colors */
+.driver1-badge {
+    background-color: #FF5252 !important; /* Red */
+}
+
+.driver2-badge {
+    background-color: #4285F4 !important; /* Blue */
+}
+
+.driver1-name {
+    color: #FF5252 !important; /* Red */
+}
+
+.driver2-name {
+    color: #4285F4 !important; /* Blue */
+}
+
+/* Chart colors */
+.chartjs-render-monitor .chartjs-dataset-0 {
+    background-color: #FF5252 !important; /* Red bars */
+    border-color: #FF0000 !important;
+}
+
+.chartjs-render-monitor .chartjs-dataset-1 {
+    background-color: #4285F4 !important; /* Blue bars */
+    border-color: #3367D6 !important;
+}
+/* Add this to your existing CSS */
+.standings-toggle {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.standings-toggle button {
+    margin: 0;
+}
+
+#toggleStandings {
+    background-color: #333;
+    transition: all 0.3s ease;
+}
+
+#toggleStandings:hover {
+    background-color: #444;
+}
+
+@media (max-width: 768px) {
+    .standings-toggle {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .standings-toggle button {
+        width: 100%;
+    }
+}
+/* Add these styles to your existing CSS */
+.standings-toggle {
+    display: flex;
+    gap: 10px;
+}
+
+.standings-toggle .large-button {
+    margin: 0;
+    min-width: 180px;
+}
+
+.standings-toggle .large-button.active {
+    background-color: #FF1801;
+    color: white;
+}
+
+.standings-toggle .large-button.secondary {
+    background-color: #333;
+}
+
+.standings-toggle .large-button.secondary:hover {
+    background-color: #444;
+}
+.chart-container {
+    position: relative;
+    height: 60vh;
+    width: 100%;
+}
