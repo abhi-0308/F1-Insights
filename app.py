@@ -5,8 +5,13 @@ from flask_cors import CORS
 import time
 
 app = Flask(__name__)
-CORS(app)
-
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",  # Allow all origins for now (tighten this later)
+        "methods": ["GET", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 @app.route('/')
 def home():
     return render_template("index.html")
