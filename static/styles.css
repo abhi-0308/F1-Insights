@@ -210,7 +210,6 @@ th {
     border-radius: 20px;
     font-weight: bold;
 }
-/* Driver comparison colors */
 .driver1-badge {
     background-color: #FF5252 !important; /* Red */
 }
@@ -227,7 +226,6 @@ th {
     color: #4285F4 !important; /* Blue */
 }
 
-/* Chart colors */
 .chartjs-render-monitor .chartjs-dataset-0 {
     background-color: #FF5252 !important; /* Red bars */
     border-color: #FF0000 !important;
@@ -237,7 +235,6 @@ th {
     background-color: #4285F4 !important; /* Blue bars */
     border-color: #3367D6 !important;
 }
-/* Add this to your existing CSS */
 .standings-toggle {
     display: flex;
     gap: 10px;
@@ -267,7 +264,6 @@ th {
         width: 100%;
     }
 }
-/* Add these styles to your existing CSS */
 .standings-toggle {
     display: flex;
     gap: 10px;
