@@ -59,43 +59,37 @@ function switchStandingsType(type) {
 async function fetchStandings() {
     try {
         showLoading('standings', `Loading ${currentStandingsType} standings...`);
-        console.log(`Fetching ${currentStandingsType} standings...`);
-        
-        const endpoint = `/standings?type=${currentStandingsType}`;
-        const response = await fetch(endpoint, {
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        console.log("Standings response status:", response.status);
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        const response = await fetch(`/standings?type=${currentStandingsType}`);
+        const { status, data } = await response.json();
+
+        if (!response.ok || status === "error") {
+            throw new Error(data?.message || "Failed to load standings");
         }
-        
-        const data = await response.json();
-        console.log("Standings data received:", data);
-        
-        const standingsList = data.MRData?.StandingsTable?.StandingsLists?.[0];
-        if (!standingsList) throw new Error("No standings data available");
-        
-        renderStandingsTable(
-            currentStandingsType === 'driver' 
-                ? standingsList.DriverStandings 
-                : standingsList.ConstructorStandings,
-            currentStandingsType
-        );
-        
-        updateTimestamp();
+
+        if (!data.standings || data.standings.length === 0) {
+            renderEmptyState('standings', 
+                data.message || `No ${currentStandingsType} standings available for ${data.season}`
+            );
+        } else {
+            renderStandingsTable(data.standings);
+        }
+
     } catch (error) {
         console.error('Standings error:', error);
-        showError('standings', `Failed to load standings: ${error.message}`);
-        setTimeout(fetchStandings, 5000);
+        showError('standings', error.message);
+        setTimeout(fetchStandings, 5000); // Retry after 5 seconds
     }
 }
 
+function renderEmptyState(elementId, message) {
+    const container = document.getElementById(elementId);
+    container.innerHTML = `
+        <div class="empty-state">
+            <p>${message}</p>
+            <button onclick="fetchStandings()">Try Again</button>
+        </div>
+    `;
+}
 function renderStandingsTable(standings, type) {
     const container = document.getElementById("standings");
     if (!standings || !standings.length) {

@@ -70,61 +70,42 @@ def get_ergast_data(endpoint, year=CURRENT_YEAR):
         return None
 @app.route('/standings', methods=['GET'])
 def get_standings():
-    """Get current driver or constructor standings with enhanced error handling"""
     standings_type = request.args.get('type', 'driver')
-    logger.info(f"Fetching {standings_type} standings")
-    
     try:
-        # Validate request parameter
-        if standings_type not in ['driver', 'constructor']:
-            raise ValueError("Invalid standings type. Use 'driver' or 'constructor'")
-
-        endpoint = f"{standings_type}Standings"
-        data = None
-        
-        # Try current year first
-        for year in [CURRENT_YEAR, PREVIOUS_YEAR]:
-            data = get_ergast_data(endpoint, year)
+        # Try multiple years in order
+        for year in [CURRENT_YEAR, PREVIOUS_YEAR, CURRENT_YEAR-2]:
+            data = get_ergast_data(f"{standings_type}Standings", year)
             
             if data and data.get('MRData', {}).get('StandingsTable', {}).get('StandingsLists'):
-                standings_list = data['MRData']['StandingsTable']['StandingsLists'][0]
-                results = standings_list.get(f"{standings_type.title()}Standings", [])
+                standings = data['MRData']['StandingsTable']['StandingsLists'][0]
+                results = standings.get(f"{standings_type.title()}Standings", [])
                 
-                if results:  # Only return if we have valid data
+                if results:
                     return jsonify({
                         "status": "success",
                         "data": {
                             "standings": results,
-                            "season": standings_list['season'],
-                            "type": standings_type,
-                            "round": standings_list.get('round', 'N/A')
+                            "season": standings['season'],
+                            "round": standings.get('round', 'N/A')
                         }
                     })
-                
-                logger.info(f"No {standings_type} standings found for {year}")
 
-        # If we get here, no data was found
-        raise Exception(
-            f"No {standings_type} standings available for "
-            f"{CURRENT_YEAR} or {PREVIOUS_YEAR}"
-        )
-        
-    except ValueError as e:
-        logger.warning(f"Invalid request: {str(e)}")
         return jsonify({
-            "status": "error",
-            "message": str(e),
-            "type": standings_type
-        }), 400
-        
+            "status": "success",
+            "data": {
+                "standings": [],
+                "season": CURRENT_YEAR,
+                "message": "No standings data available for recent seasons"
+            }
+        }), 200
+
     except Exception as e:
-        logger.error(f"Standings error: {str(e)}", exc_info=True)
+        logger.error(f"Standings error: {str(e)}")
         return jsonify({
             "status": "error",
-            "message": str(e),
-            "type": standings_type,
-            "hint": "Data might not be available for current season yet"
+            "message": str(e)
         }), 500
+    
 @app.route('/lap_times', methods=['GET'])
 def get_lap_times():
     """Get lap times from last race with enhanced response"""

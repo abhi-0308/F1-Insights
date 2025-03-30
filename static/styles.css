@@ -116,7 +116,21 @@ th {
     border-radius: 5px;
     transition: all 0.3s ease;
 }
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
 
+.empty-state button {
+    background: #e10600;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    margin-top: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
 .large-button:hover {
     background-color: #C40000;
 }
