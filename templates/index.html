@@ -4,13 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F1 Stats Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
+
+    <!-- Ensure the correct path for CSS -->
+    <link rel="stylesheet" href="/static/styles.css">
+
+    <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="dashboard.js" defer></script>
+
+    <!-- Ensure the correct path for JavaScript -->
+    <script src="/static/dashboard.js" defer></script>
 </head>
 <body>
     <header class="header">
-        <img src="https://www.formula1.com/etc/designs/fom-website/images/f1_logo.svg" alt="F1 Logo" class="logo">
+        <img src="https://www.formula1.com/etc/designs/fom-website/images/f1_logo.svg" 
+             alt="F1 Logo" class="logo">
         <h1>F1 Statistics Dashboard</h1>
     </header>
 
@@ -18,8 +25,12 @@
         <section class="standings-section large-section">
             <div class="section-header">
                 <div class="standings-toggle">
-                    <button id="driverStandingsBtn" class="large-button active">Driver Standings</button>
-                    <button id="constructorStandingsBtn" class="large-button secondary">Constructor Standings</button>
+                    <button id="driverStandingsBtn" class="large-button active">
+                        Driver Standings
+                    </button>
+                    <button id="constructorStandingsBtn" class="large-button secondary">
+                        Constructor Standings
+                    </button>
                 </div>
                 <button id="refreshStandings" class="large-button secondary">Refresh Data</button>
             </div>
