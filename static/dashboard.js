@@ -134,23 +134,124 @@ function renderStandingsTable(standings, type) {
         }
     }).join('');
 }
-function initializeLapTimesChart() {
-    console.log("Initializing lap times chart...");
+function initializeLapTimesChart(raceData) {
     const ctx = document.getElementById('lapChart').getContext('2d');
+    
+    // Extract data from API response
+    const lapLabels = raceData.laps.labels;
+    const driversData = raceData.laps.drivers;
+    
+    // Create datasets for each driver
+    const datasets = driversData.map(driver => ({
+        label: driver.name,
+        data: driver.times,
+        borderColor: driver.color,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        pointBackgroundColor: driver.color,
+        pointBorderColor: '#ffffff',
+        tension: 0.1,
+        fill: false
+    }));
+    
+    // Initialize the chart
     lapTimesChart = new Chart(ctx, {
         type: 'line',
-        data: { labels: [], datasets: [] },
+        data: {
+            labels: lapLabels,
+            datasets: datasets
+        },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
-                title: { display: true, text: 'Lap Times Comparison' }
+                title: {
+                    display: true,
+                    text: `Lap Times Comparison - ${raceData.race.name}`,
+                    font: { 
+                        size: 18,
+                        weight: 'bold'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw.toFixed(3)}s (Pos: ${driversData[context.datasetIndex].positions[context.dataIndex]})`;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 20,
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
             },
             scales: {
-                y: { reverse: true } // Faster times at top
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Lap Number',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Lap Time (seconds)',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
+                    reverse: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(1);
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            animation: {
+                duration: 1000
             }
         }
     });
 }
+
+// Usage with API call
+function fetchAndDisplayLapTimes() {
+    fetch('/lap_times')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error(data.error);
+                return;
+            }
+            initializeLapTimesChart(data);
+        })
+        .catch(error => {
+            console.error('Error fetching lap times:', error);
+        });
+}
+
+// Call this when your page loads
+document.addEventListener('DOMContentLoaded', fetchAndDisplayLapTimes);
 
 async function fetchLapTimes() {
     try {

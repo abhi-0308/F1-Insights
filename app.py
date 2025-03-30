@@ -104,48 +104,75 @@ def get_standings():
     
 @app.route('/lap_times', methods=['GET'])
 def get_lap_times():
-    """Get lap times from last race with enhanced response"""
+    """Get lap times for multiple drivers from last race"""
     try:
-        logger.info("Fetching lap times")
-        data = get_ergast_data("last/laps")
-        if not data or not data['MRData']['RaceTable']['Races']:
-            logger.info("No current lap times, trying previous year")
-            data = get_ergast_data("last/laps", PREVIOUS_YEAR)
+        # Get the last race results to find which drivers participated
+        race_data = get_ergast_data("last/results")
+        if not race_data or not race_data['MRData']['RaceTable']['Races']:
+            race_data = get_ergast_data("last/results", PREVIOUS_YEAR)
+            if not race_data or not race_data['MRData']['RaceTable']['Races']:
+                raise Exception("No race data available")
+
+        race = race_data['MRData']['RaceTable']['Races'][0]
+        race_id = race['round']
+        season = race['season']
         
-        if not data:
-            raise Exception("No lap times data available")
-            
-        race = data['MRData']['RaceTable']['Races'][0]
+        # Get top 3 drivers for comparison (you can modify this logic)
+        top_drivers = [result['Driver']['driverId'] for result in race['Results'][:3]]
         
-        processed_laps = []
-        for lap in race.get('Laps', []):
-            processed_lap = {
-                "number": lap['number'],
-                "timings": []
+        # Fetch lap times for each driver
+        lap_data = {}
+        for driver_id in top_drivers:
+            driver_laps = get_ergast_data(f"{season}/{race_id}/drivers/{driver_id}/laps")
+            if driver_laps and driver_laps['MRData']['RaceTable']['Races']:
+                laps = driver_laps['MRData']['RaceTable']['Races'][0]['Laps']
+                lap_data[driver_id] = [{
+                    'lap': int(lap['number']),
+                    'time': convert_time_to_seconds(lap['Timings'][0]['time']),
+                    'position': int(lap['Timings'][0]['position'])
+                } for lap in laps if 'Timings' in lap and len(lap['Timings']) > 0]
+
+        if not lap_data:
+            raise Exception("No lap time data available")
+
+        # Prepare response in chart-friendly format
+        response = {
+            'race': {
+                'name': race['raceName'],
+                'round': race_id,
+                'season': season,
+                'date': race['date'],
+                'circuit': race['Circuit']['circuitName']
+            },
+            'laps': {
+                'labels': [f"Lap {i+1}" for i in range(len(next(iter(lap_data.values()))))],
+                'drivers': [
+                    {
+                        'id': driver_id,
+                        'name': get_driver_info(driver_id)['name'],
+                        'color': get_driver_info(driver_id)['color'],
+                        'times': [lap['time'] for lap in laps],
+                        'positions': [lap['position'] for lap in laps]
+                    }
+                    for driver_id, laps in lap_data.items()
+                ]
             }
-            for timing in lap.get('Timings', []):
-                processed_lap['timings'].append({
-                    "driverId": timing['driverId'],
-                    "position": timing['position'],
-                    "time": timing['time']
-                })
-            processed_laps.append(processed_lap)
-            
-        return jsonify({
-            "status": "success",
-            "data": {
-                "raceName": race['raceName'],
-                "date": race['date'],
-                "circuit": race['Circuit']['circuitName'],
-                "laps": processed_laps
-            }
-        })
+        }
+
+        return jsonify(response)
     except Exception as e:
-        logger.error(f"Lap times error: {str(e)}")
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
+        return jsonify({"error": str(e)}), 500
+
+def convert_time_to_seconds(time_str):
+    """Convert lap time string (1:23.456) to seconds (83.456)"""
+    try:
+        if ':' in time_str:
+            minutes, rest = time_str.split(':')
+            seconds = float(rest)
+            return int(minutes) * 60 + seconds
+        return float(time_str)
+    except:
+        return 0.0
 
 @app.route('/driver_comparison/<driver1>/<driver2>', methods=['GET'])
 def get_driver_comparison(driver1, driver2):
