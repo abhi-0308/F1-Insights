@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, render_template
 import requests
+import json
 from datetime import datetime
 from flask_cors import CORS
 import time
@@ -45,28 +46,23 @@ def cache_response(key, data):
     return data
 
 def get_ergast_data(endpoint, year=CURRENT_YEAR):
-    """Fetch data from Ergast API with enhanced error handling"""
-    url = f"{ERGAST_API_BASE}/{year}/{endpoint}.json"
-    cached = get_cached_data(url)
-    if cached:
-        logger.info(f"Returning cached data for {url}")
-        return cached
-    
+    url = f"http://ergast.com/api/f1/{year}/{endpoint}.json"
     try:
-        logger.info(f"Fetching from Ergast API: {url}")
-        response = requests.get(url, timeout=REQUEST_TIMEOUT)
+        response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.json()
         
-        if not data.get('MRData'):
-            raise ValueError("Invalid API response structure")
-            
-        return cache_response(url, data)
-    except requests.exceptions.RequestException as e:
-        logger.error(f"API request failed: {str(e)}")
-        return None
-    except ValueError as e:
-        logger.error(f"Data validation failed: {str(e)}")
+        # DEBUG: Log raw API response
+        print(f"Ergast API Response: {json.dumps(data, indent=2)}")
+        
+        # Normalize data structure
+        if 'StandingsLists' in data.get('MRData', {}).get('StandingsTable', {}):
+            for standing in data['MRData']['StandingsTable']['StandingsLists'][0].get('DriverStandings', []):
+                standing.setdefault('Constructors', [{'name': 'Unknown'}])
+        
+        return data
+    except Exception as e:
+        print(f"API Error: {str(e)}")
         return None
 @app.route('/standings', methods=['GET'])
 def get_standings():
