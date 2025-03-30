@@ -1,4 +1,4 @@
-const API_BASE_URL = "";
+const API_BASE_URL = ""; 
 let lapTimesChart = null;
 let comparisonChart = null;
 let currentStandingsType = 'driver';
@@ -8,165 +8,131 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initializeDashboard() {
+    console.log("Initializing dashboard...");
     updateTimestamp();
     initializeLapTimesChart();
     
-    // Event listeners
     document.getElementById('compareDrivers').addEventListener('click', compareDrivers);
     document.getElementById('refreshStandings').addEventListener('click', fetchStandings);
     document.getElementById('refreshLapTimes').addEventListener('click', fetchLapTimes);
     document.getElementById('driverStandingsBtn').addEventListener('click', () => switchStandingsType('driver'));
     document.getElementById('constructorStandingsBtn').addEventListener('click', () => switchStandingsType('constructor'));
     
-    // Initial data load
-    await fetchStandings();
-    await fetchLapTimes();
-    await populateDriverDropdowns();
-}
-
-function updateTimestamp() {
-    document.getElementById('updateTime').textContent = new Date().toLocaleString();
-}
-
-function switchStandingsType(type) {
-    currentStandingsType = type;
-    
-    // Update button states
-    document.getElementById('driverStandingsBtn').classList.toggle('active', type === 'driver');
-    document.getElementById('driverStandingsBtn').classList.toggle('secondary', type !== 'driver');
-    document.getElementById('constructorStandingsBtn').classList.toggle('active', type === 'constructor');
-    document.getElementById('constructorStandingsBtn').classList.toggle('secondary', type !== 'constructor');
-    
-    // Update title
-    document.querySelector('.standings-section .section-title').textContent = 
-        type === 'driver' ? 'Current Driver Standings' : 'Current Constructor Standings';
-    
-    fetchStandings();
+    try {
+        await Promise.all([
+            fetchStandings(),
+            fetchLapTimes(),
+            populateDriverDropdowns()
+        ]);
+    } catch (error) {
+        console.error("Initialization error:", error);
+    }
 }
 
 async function fetchStandings() {
     try {
         showLoading('standings', `Loading ${currentStandingsType} standings...`);
-        const endpoint = currentStandingsType === 'driver' ? 'standings?type=driver' : 'standings?type=constructor';
-        const response = await fetch(`${API_BASE_URL}/${endpoint}`);
+        console.log(`Fetching ${currentStandingsType} standings...`);
         
-        if (!response.ok) throw new Error(`Failed to fetch ${currentStandingsType} standings`);
+        const endpoint = `/standings?type=${currentStandingsType}`;
+        const response = await fetch(endpoint, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        console.log("Standings response status:", response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
         
         const data = await response.json();
+        console.log("Standings data received:", data);
+        
         const standingsList = data.MRData?.StandingsTable?.StandingsLists?.[0];
+        if (!standingsList) throw new Error("No standings data available");
         
-        if (!standingsList) throw new Error(`No ${currentStandingsType} standings data available`);
-        
-        if (currentStandingsType === 'driver') {
-            renderStandingsTable(standingsList.DriverStandings, 'driver');
-        } else {
-            renderStandingsTable(standingsList.ConstructorStandings, 'constructor');
-        }
+        renderStandingsTable(
+            currentStandingsType === 'driver' 
+                ? standingsList.DriverStandings 
+                : standingsList.ConstructorStandings,
+            currentStandingsType
+        );
         
         updateTimestamp();
     } catch (error) {
         console.error('Standings error:', error);
-        showError('standings', `Error loading ${currentStandingsType} standings. Please try again later.`);
+        showError('standings', `Failed to load standings: ${error.message}`);
+        setTimeout(fetchStandings, 5000);
     }
 }
 
 function renderStandingsTable(standings, type) {
-    const standingsContainer = document.getElementById("standings");
-    
-    if (type === 'driver') {
-        standingsContainer.innerHTML = `
-            <table class="standings-table">
-                <thead>
-                    <tr>
-                        <th>Pos</th>
-                        <th>Driver</th>
-                        <th>Team</th>
-                        <th>Points</th>
-                        <th>Wins</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${standings.map(driver => `
-                        <tr>
-                            <td>${driver.position}</td>
-                            <td>${driver.Driver.givenName} ${driver.Driver.familyName}</td>
-                            <td>${driver.Constructors[0].name}</td>
-                            <td>${driver.points}</td>
-                            <td>${driver.wins}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
-    } else {
-        standingsContainer.innerHTML = `
-            <table class="standings-table">
-                <thead>
-                    <tr>
-                        <th>Pos</th>
-                        <th>Team</th>
-                        <th>Nationality</th>
-                        <th>Points</th>
-                        <th>Wins</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${standings.map(constructor => `
-                        <tr>
-                            <td>${constructor.position}</td>
-                            <td>${constructor.Constructor.name}</td>
-                            <td>${constructor.Constructor.nationality}</td>
-                            <td>${constructor.points}</td>
-                            <td>${constructor.wins}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
+    const container = document.getElementById("standings");
+    if (!standings || !standings.length) {
+        container.innerHTML = `<p class="no-data">No ${type} standings available</p>`;
+        return;
     }
-}
 
+    const headers = type === 'driver' 
+        ? ['Pos', 'Driver', 'Team', 'Points', 'Wins']
+        : ['Pos', 'Team', 'Nationality', 'Points', 'Wins'];
 
-function initializeLapTimesChart() {
-    const ctx = document.getElementById('lapChart').getContext('2d');
-    lapTimesChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: [], datasets: [] },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Lap Times Comparison',
-                    font: { size: 18 }
-                }
-            },
-            scales: {
-                x: { title: { display: true, text: 'Lap Number' } },
-                y: { title: { display: true, text: 'Lap Time (seconds)' }, reverse: true }
-            }
-        }
-    });
+    container.innerHTML = `
+        <table class="standings-table">
+            <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+            <tbody>
+                ${standings.map(item => `
+                    <tr>
+                        <td>${item.position}</td>
+                        ${type === 'driver' ? `
+                            <td>${item.Driver.givenName} ${item.Driver.familyName}</td>
+                            <td>${item.Constructors[0]?.name || 'N/A'}</td>
+                        ` : `
+                            <td>${item.Constructor.name}</td>
+                            <td>${item.Constructor.nationality}</td>
+                        `}
+                        <td>${item.points}</td>
+                        <td>${item.wins}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
 }
 
 async function fetchLapTimes() {
     try {
         showLoading('lapChart', 'Loading lap times...');
-        const response = await fetch(`${API_BASE_URL}/lap_times`);
+        console.log("Fetching lap times...");
         
-        if (!response.ok) throw new Error('Failed to fetch lap times');
+        const response = await fetch('/lap_times', {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        console.log("Lap times response status:", response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
         
         const data = await response.json();
-        const race = data.MRData?.RaceTable?.Races?.[0];
+        console.log("Lap times data received:", data);
         
-        if (!race || !race.Laps) throw new Error('No lap times data available');
+        const race = data.MRData?.RaceTable?.Races?.[0];
+        if (!race?.Laps) throw new Error("No lap times data available");
         
         renderLapTimesChart(race);
         updateTimestamp();
     } catch (error) {
         console.error('Lap times error:', error);
-        showError('lapChart', 'Error loading lap times. Please try again later.');
+        showError('lapChart', `Failed to load lap times: ${error.message}`);
+        setTimeout(fetchLapTimes, 5000);
     }
 }
 
@@ -175,10 +141,9 @@ function renderLapTimesChart(raceData) {
     const datasets = [];
     const lapNumbers = laps.map(lap => lap.number);
     
-    // Process each driver's lap times
     const drivers = {};
-    laps.forEach(lap => {
-        lap.Timings.forEach(timing => {
+    laps.forEach((lap, index) => {
+        lap.Timings?.forEach(timing => {
             const driverId = timing.driverId.toLowerCase();
             if (!drivers[driverId]) {
                 drivers[driverId] = {
@@ -187,24 +152,23 @@ function renderLapTimesChart(raceData) {
                     color: getDriverColor(driverId)
                 };
             }
-            const lapIndex = parseInt(lap.number) - 1;
-            drivers[driverId].times[lapIndex] = convertToSeconds(timing.time);
+            drivers[driverId].times[index] = convertToSeconds(timing.time);
         });
     });
     
-    // Create datasets for chart
     Object.values(drivers).forEach(driver => {
-        datasets.push({
-            label: driver.name,
-            data: driver.times,
-            borderColor: driver.color,
-            backgroundColor: `${driver.color}80`,
-            borderWidth: 2,
-            fill: false
-        });
+        if (driver.times.some(time => time !== null)) {
+            datasets.push({
+                label: driver.name,
+                data: driver.times,
+                borderColor: driver.color,
+                backgroundColor: `${driver.color}80`,
+                borderWidth: 2,
+                fill: false
+            });
+        }
     });
     
-    // Update chart
     lapTimesChart.data.labels = lapNumbers;
     lapTimesChart.data.datasets = datasets;
     lapTimesChart.options.plugins.title.text = `Lap Times - ${raceData.raceName}`;
@@ -213,72 +177,59 @@ function renderLapTimesChart(raceData) {
 
 async function populateDriverDropdowns() {
     try {
-        const response = await fetch(`${API_BASE_URL}/standings?type=driver`);
-        if (!response.ok) return;
+        console.log("Populating driver dropdowns...");
+        const response = await fetch('/standings?type=driver');
+        
+        if (!response.ok) {
+            console.warn("Failed to fetch driver standings for dropdowns");
+            return;
+        }
         
         const data = await response.json();
         const standings = data.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings;
-        if (!standings) return;
+        
+        if (!standings) {
+            console.warn("No driver standings data for dropdowns");
+            return;
+        }
         
         const select1 = document.getElementById('driver1Select');
         const select2 = document.getElementById('driver2Select');
         
-        // Clear existing options except first
         select1.innerHTML = '<option value="">Select Driver 1</option>';
         select2.innerHTML = '<option value="">Select Driver 2</option>';
         
         standings.forEach(driver => {
-            const driverId = driver.Driver.driverId;
-            const optionText = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
-            
-            const option1 = document.createElement('option');
-            option1.value = driverId;
-            option1.textContent = optionText;
-            select1.appendChild(option1);
-            
-            const option2 = document.createElement('option');
-            option2.value = driverId;
-            option2.textContent = optionText;
-            select2.appendChild(option2);
+            const option = document.createElement('option');
+            option.value = driver.Driver.driverId;
+            option.textContent = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
+            select1.appendChild(option.cloneNode(true));
+            select2.appendChild(option);
         });
     } catch (error) {
-        console.error('Error populating driver dropdowns:', error);
+        console.error('Dropdown population error:', error);
     }
-}
-
-function compareDrivers() {
-    const driver1 = document.getElementById("driver1Select").value;
-    const driver2 = document.getElementById("driver2Select").value;
-    
-    if (!driver1 || !driver2) {
-        showError("comparisonContainer", "Please select two drivers to compare");
-        return;
-    }
-    
-    if (driver1 === driver2) {
-        showError("comparisonContainer", "Please select two different drivers");
-        return;
-    }
-    
-    fetchDriverComparison(driver1, driver2);
 }
 
 async function fetchDriverComparison(driver1, driver2) {
     try {
         showLoading('comparisonContainer', 'Loading comparison data...');
-        const response = await fetch(`${API_BASE_URL}/driver_comparison/${driver1}/${driver2}`);
+        console.log(`Comparing ${driver1} vs ${driver2}`);
+        
+        const response = await fetch(`/driver_comparison/${driver1}/${driver2}`);
+        
+        console.log("Comparison response status:", response.status);
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to fetch comparison data');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
+        console.log("Comparison data received:", data);
         
         if (data.error) throw new Error(data.error);
-        if (!data.races || data.races.length === 0) {
-            throw new Error('No common races found for these drivers');
-        }
+        if (!data.races?.length) throw new Error('No common races found');
         
         renderDriverComparison(data);
     } catch (error) {
@@ -287,21 +238,18 @@ async function fetchDriverComparison(driver1, driver2) {
     }
 }
 
-// [Previous code remains the same until the renderDriverComparison function]
-
 function renderDriverComparison(data) {
     const container = document.getElementById('comparisonContainer');
     
-    // Clear previous results
     container.innerHTML = `
         <div class="comparison-content">
             <div class="comparison-header">
                 <h3>${data.driver1.name} vs ${data.driver2.name}</h3>
                 <div class="driver-badges">
-                    <span class="driver-badge driver1-badge">
+                    <span class="driver-badge" style="background:${data.driver1.color}">
                         ${data.driver1.name}
                     </span>
-                    <span class="driver-badge driver2-badge">
+                    <span class="driver-badge" style="background:${data.driver2.color}">
                         ${data.driver2.name}
                     </span>
                 </div>
@@ -319,20 +267,12 @@ function renderDriverComparison(data) {
                                 <span class="race-date">${formatDate(race.date)}</span>
                             </div>
                             <div class="driver-result">
-                                <span class="driver-name driver1-name">
-                                    ${data.driver1.name}
-                                </span>
-                                <span class="driver-position">
-                                    P${race.driver1.position} (${race.driver1.points} pts)
-                                </span>
+                                <span class="driver-name">${data.driver1.name}</span>
+                                <span class="driver-position">P${race.driver1.position} (${race.driver1.points} pts)</span>
                             </div>
                             <div class="driver-result">
-                                <span class="driver-name driver2-name">
-                                    ${data.driver2.name}
-                                </span>
-                                <span class="driver-position">
-                                    P${race.driver2.position} (${race.driver2.points} pts)
-                                </span>
+                                <span class="driver-name">${data.driver2.name}</span>
+                                <span class="driver-position">P${race.driver2.position} (${race.driver2.points} pts)</span>
                             </div>
                         </div>
                     `).join('')}
@@ -341,99 +281,20 @@ function renderDriverComparison(data) {
         </div>
     `;
     
-    // Initialize or update the chart
-    const ctx = document.getElementById('comparisonChart').getContext('2d');
-    
-    if (comparisonChart) {
-        comparisonChart.destroy();
-    }
-    
-    comparisonChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.races.map(race => race.name),
-            datasets: [
-                {
-                    label: data.driver1.name,
-                    data: data.races.map(race => race.driver1.points),
-                    backgroundColor: '#FF5252',  // Red color
-                    borderColor: '#FF0000',
-                    borderWidth: 2
-                },
-                {
-                    label: data.driver2.name,
-                    data: data.races.map(race => race.driver2.points),
-                    backgroundColor: '#4285F4',  // Blue color
-                    borderColor: '#3367D6',
-                    borderWidth: 2
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Points Comparison',
-                    font: { size: 16 }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
+    renderComparisonChart(data);
 }
 
-// [Rest of your existing helper functions remain the same]
-
-function renderComparisonChart(data) {
-    const ctx = document.getElementById('comparisonChart').getContext('2d');
-    
-    if (comparisonChart) {
-        comparisonChart.destroy();
-    }
-    
-    comparisonChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.races.map(race => race.name),
-            datasets: [
-                {
-                    label: data.driver1.name,
-                    data: data.races.map(race => race.driver1.points),
-                    backgroundColor: `${data.driver1.color}CC`,
-                    borderColor: data.driver1.color,
-                    borderWidth: 2
-                },
-                {
-                    label: data.driver2.name,
-                    data: data.races.map(race => race.driver2.points),
-                    backgroundColor: `${data.driver2.color}CC`,
-                    borderColor: data.driver2.color,
-                    borderWidth: 2
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Points Comparison',
-                    font: { size: 18 }
-                }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
-    });
+function updateTimestamp() {
+    document.getElementById('updateTime').textContent = new Date().toLocaleString();
 }
 
-// Helper functions
+function switchStandingsType(type) {
+    currentStandingsType = type;
+    document.querySelector('.standings-section .section-title').textContent = 
+        `${type === 'driver' ? 'Driver' : 'Constructor'} Standings`;
+    fetchStandings();
+}
+
 function formatDriverName(driverId) {
     return driverId.split('_').map(name => 
         name.charAt(0).toUpperCase() + name.slice(1)
@@ -442,18 +303,14 @@ function formatDriverName(driverId) {
 
 function getDriverColor(driverId) {
     const teamColors = {
-        'max_verstappen': '#0600EF',
-        'sergio_perez': '#0600EF',
-        'lewis_hamilton': '#00D2BE',
-        'george_russell': '#00D2BE',
-        'charles_leclerc': '#DC0000',
-        'carlos_sainz': '#DC0000',
+        'max_verstappen': '#0600EF', 'sergio_perez': '#0600EF',
+        'lewis_hamilton': '#00D2BE', 'george_russell': '#00D2BE',
+        'charles_leclerc': '#DC0000', 'carlos_sainz': '#DC0000',
         'lando_norris': '#FF8700',
-        'pierre_gasly': '#0090FF',
-        'esteban_ocon': '#0090FF',
+        'pierre_gasly': '#0090FF', 'esteban_ocon': '#0090FF',
         'fernando_alonso': '#006F62'
     };
-    return teamColors[driverId] || '#777777';
+    return teamColors[driverId.toLowerCase()] || '#777777';
 }
 
 function convertToSeconds(timeString) {
@@ -462,8 +319,9 @@ function convertToSeconds(timeString) {
 }
 
 function formatDate(dateString) {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+    return new Date(dateString).toLocaleDateString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric'
+    });
 }
 
 function getResultClass(pos1, pos2) {
@@ -476,6 +334,7 @@ function showLoading(elementId, message) {
     if (element) {
         element.innerHTML = `
             <div class="loading-message">
+                <div class="spinner"></div>
                 <p>${message}</p>
             </div>
         `;
@@ -488,7 +347,9 @@ function showError(elementId, message) {
         element.innerHTML = `
             <div class="error-message">
                 <p>${message}</p>
-                <button onclick="retryLoading('${elementId}')" class="retry-button">Retry</button>
+                <button class="retry-button" onclick="retryLoading('${elementId}')">
+                    Retry
+                </button>
             </div>
         `;
     }
@@ -500,31 +361,37 @@ function showComparisonError(message, driver1, driver2) {
         <div class="comparison-error">
             <h3>${formatDriverName(driver1)} vs ${formatDriverName(driver2)}</h3>
             <p class="error-message">${message}</p>
-            <div class="suggestions">
-                <button onclick="retryComparison()" class="retry-button">Retry</button>
-            </div>
+            <button class="retry-button" onclick="retryComparison()">
+                Try Again
+            </button>
         </div>
     `;
 }
 
-function retryLoading(elementId) {
-    if (elementId === 'standings') {
-        fetchStandings();
-    } else if (elementId === 'lapChart') {
-        fetchLapTimes();
-    } else if (elementId === 'comparisonContainer') {
-        compareDrivers();
-    }
-}
+window.retryLoading = function(elementId) {
+    if (elementId === 'standings') fetchStandings();
+    else if (elementId === 'lapChart') fetchLapTimes();
+    else if (elementId === 'comparisonContainer') compareDrivers();
+};
 
-function retryComparison() {
+window.retryComparison = function() {
     const driver1 = document.getElementById('driver1Select').value;
     const driver2 = document.getElementById('driver2Select').value;
-    if (driver1 && driver2) {
-        fetchDriverComparison(driver1, driver2);
-    }
-}
+    if (driver1 && driver2) fetchDriverComparison(driver1, driver2);
+};
 
-// Make functions available globally
-window.retryLoading = retryLoading;
-window.retryComparison = retryComparison;
+window.compareDrivers = function() {
+    const driver1 = document.getElementById('driver1Select').value;
+    const driver2 = document.getElementById('driver2Select').value;
+    
+    if (!driver1 || !driver2) {
+        showError('comparisonContainer', 'Please select two drivers');
+        return;
+    }
+    if (driver1 === driver2) {
+        showError('comparisonContainer', 'Please select different drivers');
+        return;
+    }
+    
+    fetchDriverComparison(driver1, driver2);
+};
