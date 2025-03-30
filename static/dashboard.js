@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "";
 let lapTimesChart = null;
 let comparisonChart = null;
 let currentStandingsType = 'driver';
