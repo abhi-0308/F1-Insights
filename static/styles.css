@@ -90,7 +90,22 @@ th {
     color: white;
     font-weight: bold;
 }
+.large-button.active {
+    background: #e10600; /* F1 Red */
+    color: white;
+    border: 2px solid #e10600;
+}
 
+.large-button.secondary {
+    background: white;
+    color: #e10600;
+    border: 2px solid #e10600;
+}
+
+.large-button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
 .large-button {
     background-color: #FF1801;
     color: white;

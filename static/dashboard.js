@@ -29,6 +29,33 @@ async function initializeDashboard() {
     }
 }
 
+function switchStandingsType(type) {
+    currentStandingsType = type;
+    
+    // Update button styles
+    const driverBtn = document.getElementById('driverStandingsBtn');
+    const constructorBtn = document.getElementById('constructorStandingsBtn');
+    
+    if (type === 'driver') {
+        driverBtn.classList.add('active');
+        driverBtn.classList.remove('secondary');
+        constructorBtn.classList.add('secondary');
+        constructorBtn.classList.remove('active');
+    } else {
+        constructorBtn.classList.add('active');
+        constructorBtn.classList.remove('secondary');
+        driverBtn.classList.add('secondary');
+        driverBtn.classList.remove('active');
+    }
+    
+    // Update title
+    document.querySelector('.standings-section .section-title').textContent = 
+        `${type === 'driver' ? 'Driver' : 'Constructor'} Standings`;
+    
+    // Fetch new data
+    fetchStandings();
+}
+
 async function fetchStandings() {
     try {
         showLoading('standings', `Loading ${currentStandingsType} standings...`);
