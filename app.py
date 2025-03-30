@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 import requests
 from datetime import datetime
 from flask_cors import CORS
@@ -9,7 +9,10 @@ CORS(app)
 
 @app.route('/')
 def home():
-    return "F1 Insights API is running!"
+    return render_template("index.html")
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000, host='0.0.0.0')
 
 # Configuration
 CURRENT_YEAR = datetime.now().year
@@ -229,5 +232,3 @@ def process_driver_result(result):
         'status': result['status']
     }
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
