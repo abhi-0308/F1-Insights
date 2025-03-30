@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 def home():
     return render_template("index.html")
 
-CURRENT_YEAR = datetime.now().year
-PREVIOUS_YEAR = CURRENT_YEAR - 1
+CURRENT_YEAR = 2024
+PREVIOUS_YEAR = 2023
 ERGAST_API_BASE = "https://ergast.com/api/f1"
 CACHE_EXPIRY = 300 
 REQUEST_TIMEOUT = 20  
