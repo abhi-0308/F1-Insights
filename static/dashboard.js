@@ -103,6 +103,24 @@ function renderStandingsTable(standings, type) {
     `;
 }
 
+function initializeLapTimesChart() {
+    console.log("Initializing lap times chart...");
+    const ctx = document.getElementById('lapChart').getContext('2d');
+    lapTimesChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: {
+            responsive: true,
+            plugins: {
+                title: { display: true, text: 'Lap Times Comparison' }
+            },
+            scales: {
+                y: { reverse: true } // Faster times at top
+            }
+        }
+    });
+}
+
 async function fetchLapTimes() {
     try {
         showLoading('lapChart', 'Loading lap times...');
