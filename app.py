@@ -7,6 +7,10 @@ import time
 app = Flask(__name__)
 CORS(app)
 
+@app.route('/')
+def home():
+    return "F1 Insights API is running!"
+
 # Configuration
 CURRENT_YEAR = datetime.now().year
 PREVIOUS_YEAR = CURRENT_YEAR - 1
