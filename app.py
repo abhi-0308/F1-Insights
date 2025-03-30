@@ -11,13 +11,10 @@ CORS(app)
 def home():
     return render_template("index.html")
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
-
 # Configuration
 CURRENT_YEAR = datetime.now().year
 PREVIOUS_YEAR = CURRENT_YEAR - 1
-ERGAS_API_BASE = "https://ergast.com/api/f1"
+ERGAST_API_BASE = "https://ergast.com/api/f1"  # Fixed typo
 CACHE_EXPIRY = 300  # 5 minutes in seconds
 
 # Caching setup
@@ -39,7 +36,7 @@ def cache_response(key, data):
 
 def get_ergast_data(endpoint, year=CURRENT_YEAR):
     """Fetch data from Ergast API with caching"""
-    url = f"{ERGAS_API_BASE}/{year}/{endpoint}.json"
+    url = f"{ERGAST_API_BASE}/{year}/{endpoint}.json"
     cached = get_cached_data(url)
     if cached:
         return cached
@@ -112,51 +109,6 @@ def get_driver_comparison(driver1, driver2):
     except Exception as e:
         return jsonify({"error": f"Comparison failed: {str(e)}"}), 500
 
-def compare_drivers_in_season(driver1, driver2, year):
-    """Compare two drivers in a specific season"""
-    # Get data for both drivers
-    driver1_data = get_ergast_data(f"drivers/{driver1}/results", year)
-    driver2_data = get_ergast_data(f"drivers/{driver2}/results", year)
-    
-    if not driver1_data or not driver2_data:
-        return None
-    
-    # Create mappings of race data
-    driver1_races = {r['raceName']: r for r in driver1_data['MRData']['RaceTable']['Races']}
-    driver2_races = {r['raceName']: r for r in driver2_data['MRData']['RaceTable']['Races']}
-    
-    # Find common races
-    common_races = []
-    for race_name in (set(driver1_races.keys()) & set(driver2_races.keys())):
-        try:
-            race1 = driver1_races[race_name]['Results'][0]
-            race2 = driver2_races[race_name]['Results'][0]
-            
-            common_races.append({
-                'name': race_name,
-                'date': driver1_races[race_name]['date'],
-                'circuit': driver1_races[race_name]['Circuit']['circuitName'],
-                'driver1': {
-                    'position': race1['position'],
-                    'points': float(race1['points'])
-                },
-                'driver2': {
-                    'position': race2['position'],
-                    'points': float(race2['points'])
-                }
-            })
-        except (KeyError, IndexError):
-            continue
-    
-    if not common_races:
-        return None
-    
-    return {
-        'driver1': get_driver_info(driver1),
-        'driver2': get_driver_info(driver2),
-        'races': sorted(common_races, key=lambda x: x['date'], reverse=True),
-        'season': year
-    }
 def compare_drivers_in_season(driver1, driver2, year):
     """Compare drivers in a specific season"""
     driver1_data = get_ergast_data(f"drivers/{driver1}/results", year)
@@ -232,3 +184,5 @@ def process_driver_result(result):
         'status': result['status']
     }
 
+if __name__ == '__main__':
+    app.run(debug=True, port=5000, host='0.0.0.0')
