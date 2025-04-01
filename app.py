@@ -6,6 +6,14 @@ from flask_cors import CORS
 import time
 import logging
 import os
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 
 app = Flask(__name__)
 
@@ -13,8 +21,8 @@ app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
         "origins": "*",
-        "methods": ["GET", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Accept"]
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Accept", "X-Requested-With"]
     }
 })
 
@@ -51,19 +59,24 @@ def cache_response(key, data):
     return data
 
 def get_ergast_data(endpoint, year=CURRENT_YEAR):
-    """Fetch data from Ergast API with error handling"""
+    """Fetch data from Ergast API with improved error handling"""
     url = f"{ERGAST_API_BASE}/{year}/{endpoint}.json"
     cache_key = f"{year}_{endpoint}"
     
     # Check cache first
     cached_data = get_cached_data(cache_key)
     if cached_data:
+        logger.info(f"Cache hit for {cache_key}")
         return cached_data
     
     try:
+        logger.info(f"Fetching data from {url}")
         response = requests.get(url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         data = response.json()
+        
+        # Log successful response
+        logger.info(f"Successfully fetched data from {url}")
         
         # Normalize data structure
         if 'StandingsLists' in data.get('MRData', {}).get('StandingsTable', {}):
@@ -73,7 +86,10 @@ def get_ergast_data(endpoint, year=CURRENT_YEAR):
         # Cache the response
         return cache_response(cache_key, data)
     except requests.exceptions.RequestException as e:
-        logger.error(f"API Error: {str(e)}")
+        logger.error(f"API Error for {url}: {str(e)}")
+        return None
+    except ValueError as e:
+        logger.error(f"JSON parsing error for {url}: {str(e)}")
         return None
 
 @app.route('/standings', methods=['GET'])
@@ -305,12 +321,14 @@ def get_driver_info(driver_id):
         'alexander_albon': 'williams'
     }
     
+    team = driver_teams.get(driver_id, 'unknown')
     return {
         'id': driver_id,
         'name': driver_id.replace('_', ' ').title(),
-        'team': driver_teams.get(driver_id, 'unknown'),
-        'color': team_colors.get(driver_teams.get(driver_id, ''), '#777777')
+        'team': team,
+        'color': team_colors.get(team, '#777777')  # Fallback to gray if team is unknown
     }
+
 
 def process_driver_result(result):
     """Process a driver's race result with better error handling"""
