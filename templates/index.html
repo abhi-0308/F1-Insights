@@ -1,76 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F1 Stats Dashboard</title>
-
+    
+    <!-- Favicon -->
+    <link rel="icon" href="https://www.formula1.com/etc/designs/fom-website/images/favicon.ico" type="image/x-icon">
+    
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/styles.css">
-
+    
+    <!-- JavaScript -->
     <script src="/static/dashboard.js" defer></script>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Interactive Formula 1 statistics dashboard with live standings, lap times, and driver comparisons">
+    <meta property="og:title" content="F1 Statistics Dashboard">
+    <meta property="og:description" content="Track Formula 1 standings, lap times, and compare drivers">
+    <meta property="og:image" content="https://www.formula1.com/etc/designs/fom-website/images/social/f1-share.jpg">
 </head>
-
 <body>
-
     <header class="header">
-        <img src="https://www.formula1.com/etc/designs/fom-website/images/f1_logo.svg" alt="F1 Logo" class="logo" loading="lazy">
-        <h1>F1 Statistics Dashboard</h1>
+        <div class="header-content">
+            <img src="https://www.formula1.com/etc/designs/fom-website/images/f1_logo.svg" 
+                 alt="Formula 1 Logo" class="logo" loading="lazy">
+            <div class="header-text">
+                <h1>F1 Statistics Dashboard</h1>
+                <p class="subtitle">Real-time racing data and analytics</p>
+            </div>
+        </div>
     </header>
 
     <main class="dashboard-container">
-        <section class="standings-section large-section">
+        <!-- Standings Section -->
+        <section class="standings-section large-section" aria-labelledby="standings-heading">
             <div class="section-header">
-                <div class="standings-toggle">
-                    <button id="driverStandingsBtn" class="large-button active" aria-pressed="true">
-                        Driver Standings
-                    </button>
-                    <button id="constructorStandingsBtn" class="large-button secondary" aria-pressed="false">
-                        Constructor Standings
+                <h2 id="standings-heading" class="section-title">Driver Standings</h2>
+                <div class="section-controls">
+                    <div class="standings-toggle" role="group" aria-label="Standings type">
+                        <button id="driverStandingsBtn" class="large-button active" aria-pressed="true">
+                            <i class="fas fa-user"></i> Drivers
+                        </button>
+                        <button id="constructorStandingsBtn" class="large-button secondary" aria-pressed="false">
+                            <i class="fas fa-car"></i> Teams
+                        </button>
+                    </div>
+                    <button id="refreshStandings" class="large-button secondary" aria-label="Refresh standings data">
+                        <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                 </div>
-                <button id="refreshStandings" class="large-button secondary" aria-label="Refresh standings data">
-                    Refresh Data
-                </button>
             </div>
             <div class="table-container">
                 <div id="standings" role="region" aria-live="polite">
-                    <!-- Standings data will be dynamically injected here -->
+                    <!-- Loading state will be inserted here by JavaScript -->
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading standings data...</p>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section class="lap-times-section large-section">
+        <!-- Lap Times Section -->
+        <section class="lap-times-section large-section" aria-labelledby="lap-times-heading">
             <div class="section-header">
-                <h2 class="section-title">Last Race Lap Times</h2>
+                <h2 id="lap-times-heading" class="section-title">Last Race Lap Times</h2>
                 <button id="refreshLapTimes" class="large-button secondary" aria-label="Refresh lap times data">
-                    Refresh Data
+                    <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
             <div class="chart-container extra-large-chart">
-                <canvas id="lapChart" aria-label="Lap times comparison chart"></canvas>
+                <canvas id="lapChart" aria-label="Lap times comparison chart" role="img"></canvas>
+                <div id="lapChartFallback" class="chart-fallback">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading lap time visualization...</p>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <section class="comparison-section large-section">
+        <!-- Driver Comparison Section -->
+        <section class="comparison-section large-section" aria-labelledby="comparison-heading">
             <div class="section-header">
-                <h2 class="section-title">Driver Comparison</h2>
+                <h2 id="comparison-heading" class="section-title">Driver Comparison</h2>
                 <div class="comparison-controls">
-                    <select id="driver1Select" class="large-select" aria-label="Select first driver">
-                        <option value="">Select Driver 1</option>
-                    </select>
-                    <select id="driver2Select" class="large-select" aria-label="Select second driver">
-                        <option value="">Select Driver 2</option>
-                    </select>
+                    <div class="driver-select-container">
+                        <label for="driver1Select" class="visually-hidden">Select first driver</label>
+                        <select id="driver1Select" class="large-select">
+                            <option value="">Select Driver 1</option>
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    <div class="vs-text">vs</div>
+                    <div class="driver-select-container">
+                        <label for="driver2Select" class="visually-hidden">Select second driver</label>
+                        <select id="driver2Select" class="large-select">
+                            <option value="">Select Driver 2</option>
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
                     <button id="compareDrivers" class="large-button" aria-label="Compare selected drivers">
-                        Compare
+                        <i class="fas fa-chart-bar"></i> Compare
                     </button>
                 </div>
             </div>
             <div id="comparisonContainer" role="region" aria-live="polite">
                 <div class="empty-state">
+                    <i class="fas fa-users"></i>
                     <p>Select two drivers and click "Compare" to see their head-to-head results</p>
                 </div>
             </div>
@@ -78,10 +125,19 @@
     </main>
 
     <footer class="large-footer">
-        <p>Data provided by Ergast API • Last updated: <span id="updateTime" aria-live="polite">Loading...</span></p>
-        <p>MADE BY: ABHINAY SELVAKUMAR</p>
+        <div class="footer-content">
+            <div class="footer-section">
+                <p><i class="fas fa-database"></i> Data provided by Ergast API</p>
+                <p>Last updated: <span id="updateTime" aria-live="polite">Loading...</span></p>
+            </div>
+            <div class="footer-section">
+                <p><i class="fas fa-code"></i> Developed by Abhinay Selvakumar</p>
+                <p><i class="fas fa-github"></i> <a href="https://github.com/abhi0308/f1-dashboard" target="_blank" rel="noopener">View on GitHub</a></p>
+            </div>
+        </div>
     </footer>
 
+    <!-- Polyfill for older browsers -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default,es6,es7,Array.prototype.includes"></script>
 </body>
-
 </html>
