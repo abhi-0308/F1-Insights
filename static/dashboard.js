@@ -179,7 +179,7 @@ function renderStandingsTable(standings, type = 'driver') {
             <tbody>
     `;
     
-    // Add rows
+    // Add rows for ALL drivers
     standings.forEach(item => {
         try {
             const position = item.position || "N/A";
@@ -291,22 +291,27 @@ async function populateDriverDropdowns() {
         select1.innerHTML = '<option value="">Select Driver 1</option>';
         select2.innerHTML = '<option value="">Select Driver 2</option>';
         
-        // Add driver options
+        // Add ALL drivers to dropdowns
         standings.forEach(driver => {
-            const option = document.createElement('option');
-            option.value = driver.Driver.driverId;
-            option.textContent = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
-            select1.appendChild(option.cloneNode(true));
-            select2.appendChild(option);
+            if (driver.Driver && driver.Driver.driverId) {
+                const option = document.createElement('option');
+                option.value = driver.Driver.driverId;
+                option.textContent = `${driver.Driver.givenName} ${driver.Driver.familyName}`;
+                select1.appendChild(option.cloneNode(true));
+                select2.appendChild(option);
+            }
         });
     } catch (error) {
         console.error('Dropdown population error:', error);
         
-        // Fallback options
+        // Fallback options if API fails
         const fallbackDrivers = [
             { id: 'max_verstappen', name: 'Max Verstappen' },
+            { id: 'sergio_perez', name: 'Sergio Perez' },
             { id: 'lewis_hamilton', name: 'Lewis Hamilton' },
-            { id: 'charles_leclerc', name: 'Charles Leclerc' }
+            { id: 'george_russell', name: 'George Russell' },
+            { id: 'charles_leclerc', name: 'Charles Leclerc' },
+            { id: 'carlos_sainz', name: 'Carlos Sainz' }
         ];
         
         const select1 = document.getElementById('driver1Select');

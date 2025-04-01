@@ -89,10 +89,11 @@ def get_standings():
                 results = standings.get(f"{standings_type.title()}Standings", [])
                 
                 if results:
+                    # Return ALL drivers (not just the first one)
                     return jsonify({
                         "status": "success",
                         "data": {
-                            "standings": results,
+                            "standings": results,  # This now contains all drivers
                             "season": standings['season'],
                             "round": standings.get('round', 'N/A')
                         }
@@ -106,7 +107,6 @@ def get_standings():
                 "message": "No standings data available for recent seasons"
             }
         }), 200
-
     except Exception as e:
         logger.error(f"Standings error: {str(e)}")
         return jsonify({
