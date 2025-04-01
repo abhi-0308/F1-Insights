@@ -236,14 +236,24 @@ async function fetchLapTimes() {
         const data = await response.json();
         
         if (data.error) {
-            throw new Error(data.error);
+            // Handle the case when no data is available
+            if (data.available_seasons) {
+                showError('lapChart', 
+                    `No race data found for ${data.available_seasons.join(', ')}. ` +
+                    `The season may not have started yet.`);
+            } else {
+                throw new Error(data.error || "Unknown error");
+            }
+            return;
         }
         
         renderLapTimesChart(data);
         updateTimestamp();
     } catch (error) {
         console.error('Lap times error:', error);
-        showError('lapChart', `Failed to load lap times: ${error.message}`);
+        showError('lapChart', 
+            `Failed to load lap times: ${error.message}. ` +
+            `Try again later when more race data is available.`);
     }
 }
 

@@ -82,15 +82,17 @@
             <div class="chart-container extra-large-chart">
                 <canvas id="lapChart" aria-label="Lap times comparison chart" role="img"></canvas>
                 <div id="lapChartFallback" class="chart-fallback">
-                    <div class="loading-state">
-                        <div class="spinner"></div>
-                        <p>Loading lap time visualization...</p>
+                    <div class="empty-state">
+                        <i class="fas fa-flag-checkered"></i>
+                        <p id="lapStatusMessage">Loading lap time data...</p>
+                        <button class="retry-button" onclick="fetchLapTimes()">
+                            <i class="fas fa-sync-alt"></i> Retry
+                        </button>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Driver Comparison Section -->
         <section class="comparison-section large-section" aria-labelledby="comparison-heading">
             <div class="section-header">
                 <h2 id="comparison-heading" class="section-title">Driver Comparison</h2>
