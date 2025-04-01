@@ -56,7 +56,7 @@ def get_ergast_data(endpoint, year=None):
     if year:
         base_url = f"{ERGAST_API_BASE}/{year}"
     
-    url = f"{base_url}/{endpoint}.json".replace("//", "/")  # Remove duplicate slashes
+    url = f"{base_url}/{endpoint}.json"
     cache_key = f"{year}_{endpoint}" if year else endpoint
     
     try:
