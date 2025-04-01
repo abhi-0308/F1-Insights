@@ -299,59 +299,33 @@ async function fetchSpecificSeason(year) {
 }
 
 function renderLapTimesChart(data) {
-    console.log("Attempting to render chart...");  // Debug log
-    const ctx = document.getElementById('lapChart');
-    
-    if (!ctx) {
-        console.error("Chart canvas element not found!");
-        return;
-    }
+    const ctx = document.getElementById('lapChart').getContext('2d');
     
     // Destroy previous chart if exists
     if (window.lapTimesChart) {
         window.lapTimesChart.destroy();
     }
     
-    // Validate data
-    if (!data.laps || !data.laps.drivers || data.laps.drivers.length === 0) {
-        console.error("Invalid data structure:", data);
-        showError('lapChart', "No valid lap time data available");
-        return;
-    }
-    
-    // Prepare datasets with fallback colors
-    const datasets = data.laps.drivers.map((driver, index) => {
-        if (!driver.times || driver.times.length === 0) {
-            console.warn(`No times data for ${driver.name}`);
-            return null;
-        }
-        
-        return {
-            label: driver.name || `Driver ${index+1}`,
-            data: driver.times,
-            borderColor: driver.color || getRandomColor(index),
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            borderWidth: 2,
-            pointRadius: 3,
-            pointHoverRadius: 6,
-            pointBackgroundColor: driver.color || getRandomColor(index),
-            pointBorderColor: '#ffffff',
-            tension: 0.1,
-            fill: false
-        };
-    }).filter(Boolean);  // Remove null entries
-    
-    if (datasets.length === 0) {
-        console.error("No valid datasets to display");
-        showError('lapChart', "No valid lap time data available");
-        return;
-    }
+    // Create datasets with distinct colors
+    const datasets = data.laps.drivers.map(driver => ({
+        label: driver.name,
+        data: driver.times,
+        borderColor: driver.color,
+        backgroundColor: `${driver.color}80`,  // Semi-transparent version
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        pointBackgroundColor: driver.color,
+        pointBorderColor: '#ffffff',
+        tension: 0.1,
+        fill: false
+    }));
     
     // Create the chart
     window.lapTimesChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: data.laps.labels || datasets[0].data.map((_, i) => `Lap ${i+1}`),
+            labels: data.laps.labels,
             datasets: datasets
         },
         options: {
@@ -360,7 +334,7 @@ function renderLapTimesChart(data) {
             plugins: {
                 title: {
                     display: true,
-                    text: `Lap Times - ${data.race?.name || 'Race'} (${data.race?.season || 'N/A'})`,
+                    text: `Lap Times - ${data.race.name} (${data.race.season})`,
                     font: { 
                         size: 16,
                         weight: 'bold'
@@ -370,14 +344,53 @@ function renderLapTimesChart(data) {
                     callbacks: {
                         label: function(context) {
                             const driver = data.laps.drivers[context.datasetIndex];
-                            const position = driver.positions?.[context.dataIndex] || '?';
+                            const position = driver.positions[context.dataIndex];
                             return `${driver.name}: ${context.raw.toFixed(3)}s (P${position})`;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 20,
+                        font: {
+                            size: 12
+                        },
+                        generateLabels: function(chart) {
+                            return chart.data.datasets.map(dataset => ({
+                                text: dataset.label,
+                                fillStyle: dataset.borderColor,
+                                strokeStyle: dataset.borderColor,
+                                lineWidth: 2,
+                                hidden: false
+                            }));
                         }
                     }
                 }
             },
             scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Lap Number',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
                 y: {
+                    title: {
+                        display: true,
+                        text: 'Lap Time (seconds)',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
                     reverse: true,
                     ticks: {
                         callback: function(value) {
@@ -385,20 +398,13 @@ function renderLapTimesChart(data) {
                         }
                     }
                 }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
             }
         }
     });
-    
-    console.log("Chart rendered successfully");  // Debug log
-}
-
-// Helper function for fallback colors
-function getRandomColor(index) {
-    const colors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-        '#9966FF', '#FF9F40', '#8AC24A', '#F06292'
-    ];
-    return colors[index % colors.length];
 }
 
 async function populateDriverDropdowns() {
