@@ -155,15 +155,45 @@
     background-color: rgba(0, 0, 0, 0.05);
   }
   
-  /* Chart Containers */
-  .chart-container {
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    padding: 1.5rem;
-    height: 400px;
+  /* Chart container styles */
+.chart-container {
     position: relative;
-  }
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 1rem;
+}
+
+/* Legend styles */
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 5px;
+    border: 1px solid #ddd;
+}
+
+/* Tooltip styles */
+.chartjs-tooltip {
+    background: rgba(0,0,0,0.7);
+    color: white;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 12px;
+}
   
   .extra-large-chart {
     height: 500px;

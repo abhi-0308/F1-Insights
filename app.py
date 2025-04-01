@@ -117,9 +117,8 @@ def get_standings():
 def get_lap_times():
     """Get lap times for multiple drivers from last race"""
     try:
-        # Try seasons in reverse chronological order
-        for year in [2023, 2022]:  # Only use years with known complete data
-            # Get the last race results first
+        # Try seasons with known complete data
+        for year in [2023, 2022]:  # Using years with reliable data
             race_data = get_ergast_data("last/results", year)
             
             if not race_data or not race_data['MRData']['RaceTable']['Races']:
@@ -129,30 +128,43 @@ def get_lap_times():
             season = race['season']
             race_id = race['round']
             
-            # Get top 5 drivers
-            top_drivers = [result['Driver']['driverId'] for result in race['Results'][:5]]
+            # Get all drivers (not just top 5)
+            all_drivers = [result['Driver'] for result in race['Results']]
             lap_data = {}
             
-            for driver_id in top_drivers:
+            for driver in all_drivers:
+                driver_id = driver['driverId']
                 try:
-                    # Correct URL format: /api/f1/{season}/{round}/drivers/{id}/laps.json
                     endpoint = f"{race_id}/drivers/{driver_id}/laps"
-                    driver_laps = get_ergast_data(endpoint, season)  # Pass season as year parameter
+                    driver_laps = get_ergast_data(endpoint, season)
                     
                     if driver_laps and driver_laps['MRData']['RaceTable']['Races']:
                         laps = driver_laps['MRData']['RaceTable']['Races'][0].get('Laps', [])
                         if laps:
-                            lap_data[driver_id] = [{
-                                'lap': int(lap['number']),
-                                'time': convert_time_to_seconds(lap['Timings'][0]['time']),
-                                'position': int(lap['Timings'][0]['position'])
-                            } for lap in laps if 'Timings' in lap and len(lap['Timings']) > 0]
+                            driver_info = get_driver_info(driver_id)
+                            lap_data[driver_id] = {
+                                'name': f"{driver['givenName']} {driver['familyName']}",
+                                'color': driver_info['color'],
+                                'times': [],
+                                'positions': []
+                            }
+                            
+                            for lap in laps:
+                                if 'Timings' in lap and len(lap['Timings']) > 0:
+                                    lap_data[driver_id]['times'].append(
+                                        convert_time_to_seconds(lap['Timings'][0]['time'])
+                                    )
+                                    lap_data[driver_id]['positions'].append(
+                                        int(lap['Timings'][0]['position'])
+                                    )
+
                 except Exception as e:
                     logger.warning(f"Failed to get laps for {driver_id}: {str(e)}")
                     continue
 
             if lap_data:
-                return jsonify({
+                # Prepare response with all drivers
+                response = {
                     'race': {
                         'name': race['raceName'],
                         'round': race_id,
@@ -161,24 +173,17 @@ def get_lap_times():
                         'circuit': race['Circuit']['circuitName']
                     },
                     'laps': {
-                        'labels': [f"Lap {i+1}" for i in range(len(next(iter(lap_data.values()))))],
-                        'drivers': [
-                            {
-                                'id': driver_id,
-                                'name': get_driver_info(driver_id)['name'],
-                                'color': get_driver_info(driver_id)['color'],
-                                'times': [lap['time'] for lap in laps],
-                                'positions': [lap['position'] for lap in laps]
-                            }
-                            for driver_id, laps in lap_data.items()
-                        ]
+                        'labels': [f"Lap {i+1}" for i in range(max(
+                            len(driver['times']) for driver in lap_data.values()
+                        ))],
+                        'drivers': list(lap_data.values())
                     }
-                })
+                }
+                return jsonify(response)
         
         return jsonify({
             "error": "No lap time data available",
-            "available_seasons": [2023, 2022],
-            "note": "Ergast API has limited lap time data. Try specific race endpoints."
+            "available_seasons": [2023, 2022]
         }), 404
 
     except Exception as e:

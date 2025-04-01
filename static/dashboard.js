@@ -287,15 +287,19 @@ async function fetchSpecificSeason(year) {
 }
 
 function renderLapTimesChart(data) {
-    const lapLabels = data.laps.labels;
-    const driversData = data.laps.drivers;
+    const ctx = document.getElementById('lapChart').getContext('2d');
     
-    // Create datasets for each driver
-    const datasets = driversData.map(driver => ({
+    // Destroy previous chart if exists
+    if (window.lapTimesChart) {
+        window.lapTimesChart.destroy();
+    }
+    
+    // Create datasets with distinct colors
+    const datasets = data.laps.drivers.map(driver => ({
         label: driver.name,
         data: driver.times,
         borderColor: driver.color,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: `${driver.color}80`,  // Semi-transparent version
         borderWidth: 2,
         pointRadius: 3,
         pointHoverRadius: 6,
@@ -305,11 +309,90 @@ function renderLapTimesChart(data) {
         fill: false
     }));
     
-    // Update the chart
-    lapTimesChart.data.labels = lapLabels;
-    lapTimesChart.data.datasets = datasets;
-    lapTimesChart.options.plugins.title.text = `Lap Times Comparison - ${data.race.name}`;
-    lapTimesChart.update();
+    // Create the chart
+    window.lapTimesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.laps.labels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: `Lap Times - ${data.race.name} (${data.race.season})`,
+                    font: { 
+                        size: 16,
+                        weight: 'bold'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const driver = data.laps.drivers[context.datasetIndex];
+                            const position = driver.positions[context.dataIndex];
+                            return `${driver.name}: ${context.raw.toFixed(3)}s (P${position})`;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 20,
+                        font: {
+                            size: 12
+                        },
+                        generateLabels: function(chart) {
+                            return chart.data.datasets.map(dataset => ({
+                                text: dataset.label,
+                                fillStyle: dataset.borderColor,
+                                strokeStyle: dataset.borderColor,
+                                lineWidth: 2,
+                                hidden: false
+                            }));
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Lap Number',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Lap Time (seconds)',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
+                    reverse: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(1);
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
 }
 
 async function populateDriverDropdowns() {
