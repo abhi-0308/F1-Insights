@@ -115,83 +115,85 @@ def get_standings():
 
 @app.route('/lap_times', methods=['GET'])
 def get_lap_times():
-    """Get lap times for multiple drivers from last race"""
+    """Debug version with detailed logging"""
     try:
-        # Try seasons with known complete data
-        for year in [2023, 2022]:  # Using years with reliable data
+        print("Starting lap times fetch")  # Debug log
+        for year in [2023, 2022]:
+            print(f"Trying year {year}")  # Debug log
             race_data = get_ergast_data("last/results", year)
             
-            if not race_data or not race_data['MRData']['RaceTable']['Races']:
+            if not race_data:
+                print(f"No race data for {year}")  # Debug log
+                continue
+                
+            if not race_data['MRData']['RaceTable']['Races']:
+                print(f"No races found for {year}")  # Debug log
                 continue
                 
             race = race_data['MRData']['RaceTable']['Races'][0]
-            season = race['season']
-            race_id = race['round']
+            print(f"Found race: {race['raceName']}")  # Debug log
             
-            # Get all drivers (not just top 5)
             all_drivers = [result['Driver'] for result in race['Results']]
-            lap_data = {}
+            print(f"Processing {len(all_drivers)} drivers")  # Debug log
             
+            lap_data = {}
             for driver in all_drivers:
                 driver_id = driver['driverId']
+                print(f"Fetching laps for {driver_id}")  # Debug log
+                
                 try:
-                    endpoint = f"{race_id}/drivers/{driver_id}/laps"
-                    driver_laps = get_ergast_data(endpoint, season)
+                    endpoint = f"{race['round']}/drivers/{driver_id}/laps"
+                    driver_laps = get_ergast_data(endpoint, year)
                     
-                    if driver_laps and driver_laps['MRData']['RaceTable']['Races']:
-                        laps = driver_laps['MRData']['RaceTable']['Races'][0].get('Laps', [])
-                        if laps:
-                            driver_info = get_driver_info(driver_id)
-                            lap_data[driver_id] = {
-                                'name': f"{driver['givenName']} {driver['familyName']}",
-                                'color': driver_info['color'],
-                                'times': [],
-                                'positions': []
-                            }
-                            
-                            for lap in laps:
-                                if 'Timings' in lap and len(lap['Timings']) > 0:
-                                    lap_data[driver_id]['times'].append(
-                                        convert_time_to_seconds(lap['Timings'][0]['time'])
-                                    )
-                                    lap_data[driver_id]['positions'].append(
-                                        int(lap['Timings'][0]['position'])
-                                    )
-
+                    if not driver_laps:
+                        print(f"No lap data for {driver_id}")  # Debug log
+                        continue
+                        
+                    laps = driver_laps['MRData']['RaceTable']['Races'][0].get('Laps', [])
+                    print(f"Found {len(laps)} laps for {driver_id}")  # Debug log
+                    
+                    if laps:
+                        driver_info = get_driver_info(driver_id)
+                        lap_data[driver_id] = {
+                            'name': f"{driver['givenName']} {driver['familyName']}",
+                            'color': driver_info['color'],
+                            'times': [],
+                            'positions': []
+                        }
+                        
+                        for i, lap in enumerate(laps):
+                            if 'Timings' in lap and len(lap['Timings']) > 0:
+                                lap_data[driver_id]['times'].append(
+                                    convert_time_to_seconds(lap['Timings'][0]['time'])
+                                )
+                                lap_data[driver_id]['positions'].append(
+                                    int(lap['Timings'][0]['position'])
+                                )
+                            else:
+                                print(f"Missing timing data for {driver_id} lap {i+1}")
+                
                 except Exception as e:
-                    logger.warning(f"Failed to get laps for {driver_id}: {str(e)}")
+                    print(f"Error processing {driver_id}: {str(e)}")  # Debug log
                     continue
 
             if lap_data:
-                # Prepare response with all drivers
-                response = {
-                    'race': {
-                        'name': race['raceName'],
-                        'round': race_id,
-                        'season': season,
-                        'date': race['date'],
-                        'circuit': race['Circuit']['circuitName']
-                    },
+                print(f"Returning data for {len(lap_data)} drivers")  # Debug log
+                return jsonify({
+                    'race': race,
                     'laps': {
                         'labels': [f"Lap {i+1}" for i in range(max(
-                            len(driver['times']) for driver in lap_data.values()
-                        ))],
+                            len(d['times']) for d in lap_data.values()
+                        ) if lap_data else 0)],
                         'drivers': list(lap_data.values())
                     }
-                }
-                return jsonify(response)
+                })
         
-        return jsonify({
-            "error": "No lap time data available",
-            "available_seasons": [2023, 2022]
-        }), 404
+        print("No lap data found in any season")  # Debug log
+        return jsonify({"error": "No lap data available"}), 404
 
     except Exception as e:
-        logger.error(f"Lap times error: {str(e)}")
-        return jsonify({
-            "error": str(e),
-            "message": "Failed to fetch lap times"
-        }), 500
+        print(f"Global error: {str(e)}")  # Debug log
+        return jsonify({"error": str(e)}), 500
     
 def convert_time_to_seconds(time_str):
     """Convert lap time string (1:23.456) to seconds (83.456)"""
