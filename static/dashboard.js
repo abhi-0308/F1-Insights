@@ -230,20 +230,19 @@ async function fetchLapTimes() {
     try {
         const response = await fetch('/lap_times');
         if (!response.ok) {
+            // Handle 404 specifically
+            if (response.status === 404) {
+                const data = await response.json();
+                showNoLapDataMessage(data);
+                return;
+            }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
         
         if (data.error) {
-            // Handle the case when no data is available
-            if (data.available_seasons) {
-                showError('lapChart', 
-                    `No race data found for ${data.available_seasons.join(', ')}. ` +
-                    `The season may not have started yet.`);
-            } else {
-                throw new Error(data.error || "Unknown error");
-            }
+            showNoLapDataMessage(data);
             return;
         }
         
@@ -253,8 +252,26 @@ async function fetchLapTimes() {
         console.error('Lap times error:', error);
         showError('lapChart', 
             `Failed to load lap times: ${error.message}. ` +
-            `Try again later when more race data is available.`);
+            `The season may not have started or data may be unavailable.`);
     }
+}
+
+function showNoLapDataMessage(data) {
+    const message = data.error || "No lap time data available";
+    const seasons = data.available_seasons ? 
+        `Tried seasons: ${data.available_seasons.join(', ')}` : '';
+    
+    document.getElementById('lapChartFallback').innerHTML = `
+        <div class="empty-state">
+            <i class="fas fa-flag-checkered"></i>
+            <h3>No Lap Data Available</h3>
+            <p>${message}</p>
+            ${seasons ? `<p>${seasons}</p>` : ''}
+            <button class="retry-button" onclick="fetchLapTimes()">
+                <i class="fas fa-sync-alt"></i> Try Again
+            </button>
+        </div>
+    `;
 }
 
 function renderLapTimesChart(data) {
