@@ -5,9 +5,11 @@ from datetime import datetime
 from flask_cors import CORS
 import time
 import logging
+import os
 
 app = Flask(__name__)
 
+# Configure CORS
 CORS(app, resources={
     r"/*": {
         "origins": "*",
@@ -16,20 +18,23 @@ CORS(app, resources={
     }
 })
 
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Constants
+CURRENT_YEAR = datetime.now().year
+PREVIOUS_YEAR = CURRENT_YEAR - 1
+ERGAST_API_BASE = "https://ergast.com/api/f1"
+CACHE_EXPIRY = 300  # 5 minutes
+REQUEST_TIMEOUT = 20
+
+# Cache storage
+cache = {}
 
 @app.route('/')
 def home():
     return render_template("index.html")
-
-CURRENT_YEAR = 2024
-PREVIOUS_YEAR = 2023
-ERGAST_API_BASE = "https://ergast.com/api/f1"
-CACHE_EXPIRY = 300 
-REQUEST_TIMEOUT = 20  
-
-cache = {}
 
 def get_cached_data(key):
     """Check cache for existing data"""
@@ -46,24 +51,31 @@ def cache_response(key, data):
     return data
 
 def get_ergast_data(endpoint, year=CURRENT_YEAR):
-    url = f"http://ergast.com/api/f1/{year}/{endpoint}.json"
+    """Fetch data from Ergast API with error handling"""
+    url = f"{ERGAST_API_BASE}/{year}/{endpoint}.json"
+    cache_key = f"{year}_{endpoint}"
+    
+    # Check cache first
+    cached_data = get_cached_data(cache_key)
+    if cached_data:
+        return cached_data
+    
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         data = response.json()
-        
-        # DEBUG: Log raw API response
-        print(f"Ergast API Response: {json.dumps(data, indent=2)}")
         
         # Normalize data structure
         if 'StandingsLists' in data.get('MRData', {}).get('StandingsTable', {}):
             for standing in data['MRData']['StandingsTable']['StandingsLists'][0].get('DriverStandings', []):
                 standing.setdefault('Constructors', [{'name': 'Unknown'}])
         
-        return data
-    except Exception as e:
-        print(f"API Error: {str(e)}")
+        # Cache the response
+        return cache_response(cache_key, data)
+    except requests.exceptions.RequestException as e:
+        logger.error(f"API Error: {str(e)}")
         return None
+
 @app.route('/standings', methods=['GET'])
 def get_standings():
     standings_type = request.args.get('type', 'driver')
@@ -101,7 +113,7 @@ def get_standings():
             "status": "error",
             "message": str(e)
         }), 500
-    
+
 @app.route('/lap_times', methods=['GET'])
 def get_lap_times():
     """Get lap times for multiple drivers from last race"""
@@ -111,13 +123,13 @@ def get_lap_times():
         if not race_data or not race_data['MRData']['RaceTable']['Races']:
             race_data = get_ergast_data("last/results", PREVIOUS_YEAR)
             if not race_data or not race_data['MRData']['RaceTable']['Races']:
-                raise Exception("No race data available")
+                return jsonify({"error": "No race data available"}), 404
 
         race = race_data['MRData']['RaceTable']['Races'][0]
         race_id = race['round']
         season = race['season']
         
-        # Get top 3 drivers for comparison (you can modify this logic)
+        # Get top 3 drivers for comparison
         top_drivers = [result['Driver']['driverId'] for result in race['Results'][:3]]
         
         # Fetch lap times for each driver
@@ -133,9 +145,9 @@ def get_lap_times():
                 } for lap in laps if 'Timings' in lap and len(lap['Timings']) > 0]
 
         if not lap_data:
-            raise Exception("No lap time data available")
+            return jsonify({"error": "No lap time data available"}), 404
 
-        # Prepare response in chart-friendly format
+        # Prepare response
         response = {
             'race': {
                 'name': race['raceName'],
@@ -161,6 +173,7 @@ def get_lap_times():
 
         return jsonify(response)
     except Exception as e:
+        logger.error(f"Lap times error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def convert_time_to_seconds(time_str):
@@ -195,13 +208,14 @@ def get_driver_comparison(driver1, driver2):
             })
             
         return jsonify({
-            "status": "error",
-            "message": "No common races found for these drivers",
+            "status": "success",
             "data": {
                 "driver1": get_driver_info(driver1),
-                "driver2": get_driver_info(driver2)
+                "driver2": get_driver_info(driver2),
+                "races": [],
+                "message": "No common races found for these drivers"
             }
-        }), 404
+        })
         
     except Exception as e:
         logger.error(f"Comparison error: {str(e)}")
@@ -260,7 +274,7 @@ def compare_drivers_in_season(driver1, driver2, year):
     }
 
 def get_driver_info(driver_id):
-    """Get standardized driver information with more drivers"""
+    """Get standardized driver information with team colors"""
     team_colors = {
         'red_bull': '#0600EF',
         'mercedes': '#00D2BE',
@@ -319,4 +333,5 @@ def process_driver_result(result):
         }
 
 if __name__ == '__main__':
-    app.run(debug=False)  
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)

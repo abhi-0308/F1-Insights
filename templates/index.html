@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>F1 Stats Dashboard</title>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    
+
     <link rel="stylesheet" href="/static/styles.css">
-    
+
     <script src="/static/dashboard.js" defer></script>
 </head>
+
+<body>
+
     <header class="header">
-        <img src="https://www.formula1.com/etc/designs/fom-website/images/f1_logo.svg" 
-             alt="F1 Logo" class="logo" loading="lazy">
+        <img src="https://www.formula1.com/etc/designs/fom-website/images/f1_logo.svg" alt="F1 Logo" class="logo" loading="lazy">
         <h1>F1 Statistics Dashboard</h1>
     </header>
 
@@ -34,6 +37,7 @@
             </div>
             <div class="table-container">
                 <div id="standings" role="region" aria-live="polite">
+                    <!-- Standings data will be dynamically injected here -->
                 </div>
             </div>
         </section>
@@ -77,5 +81,7 @@
         <p>Data provided by Ergast API • Last updated: <span id="updateTime" aria-live="polite">Loading...</span></p>
         <p>MADE BY: ABHINAY SELVAKUMAR</p>
     </footer>
+
 </body>
+
 </html>
