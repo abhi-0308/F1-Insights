@@ -225,12 +225,11 @@ function renderStandingsTable(standings, type = 'driver') {
 }
 
 async function fetchLapTimes() {
-    showLoading('lapChart', 'Loading lap times data...');
+    showLoading('lapChart', 'Loading lap times...');
     
     try {
         const response = await fetch('/lap_times');
         if (!response.ok) {
-            // Handle 404 specifically
             if (response.status === 404) {
                 const data = await response.json();
                 showNoLapDataMessage(data);
@@ -240,38 +239,51 @@ async function fetchLapTimes() {
         }
         
         const data = await response.json();
-        
-        if (data.error) {
-            showNoLapDataMessage(data);
-            return;
-        }
-        
         renderLapTimesChart(data);
         updateTimestamp();
     } catch (error) {
         console.error('Lap times error:', error);
         showError('lapChart', 
-            `Failed to load lap times: ${error.message}. ` +
-            `The season may not have started or data may be unavailable.`);
+            `Failed to load lap times. ` +
+            `The Ergast API has limited historical lap time data. ` +
+            `Try viewing specific races from 2022-2023 season.`);
     }
 }
 
 function showNoLapDataMessage(data) {
-    const message = data.error || "No lap time data available";
-    const seasons = data.available_seasons ? 
-        `Tried seasons: ${data.available_seasons.join(', ')}` : '';
-    
-    document.getElementById('lapChartFallback').innerHTML = `
+    const container = document.getElementById('lapChartFallback');
+    container.innerHTML = `
         <div class="empty-state">
             <i class="fas fa-flag-checkered"></i>
-            <h3>No Lap Data Available</h3>
-            <p>${message}</p>
-            ${seasons ? `<p>${seasons}</p>` : ''}
-            <button class="retry-button" onclick="fetchLapTimes()">
-                <i class="fas fa-sync-alt"></i> Try Again
-            </button>
+            <h3>Lap Time Data Unavailable</h3>
+            <p>${data.error || 'No lap time data found'}</p>
+            ${data.note ? `<p class="note">${data.note}</p>` : ''}
+            ${data.available_seasons ? `
+                <div class="season-suggestions">
+                    <p>Try these complete seasons:</p>
+                    <div class="season-buttons">
+                        ${data.available_seasons.map(season => `
+                            <button onclick="fetchSpecificSeason(${season})">
+                                ${season} Season
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
         </div>
     `;
+}
+
+async function fetchSpecificSeason(year) {
+    showLoading('lapChart', `Loading ${year} season data...`);
+    try {
+        const response = await fetch(`/lap_times?year=${year}`);
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+        renderLapTimesChart(data);
+    } catch (error) {
+        showError('lapChart', `Failed to load ${year} data: ${error.message}`);
+    }
 }
 
 function renderLapTimesChart(data) {

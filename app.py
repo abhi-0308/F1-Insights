@@ -56,7 +56,7 @@ def get_ergast_data(endpoint, year=None):
     if year:
         base_url = f"{ERGAST_API_BASE}/{year}"
     
-    url = f"{base_url}/{endpoint}.json"
+    url = f"{base_url}/{endpoint}.json".replace("//", "/")  # Remove duplicate slashes
     cache_key = f"{year}_{endpoint}" if year else endpoint
     
     try:
@@ -117,31 +117,27 @@ def get_standings():
 def get_lap_times():
     """Get lap times for multiple drivers from last race"""
     try:
-        # Try multiple seasons in order
-        for year in [CURRENT_YEAR, PREVIOUS_YEAR, CURRENT_YEAR-1]:
-            # First get the last race results
+        # Try seasons in reverse chronological order
+        for year in [2023, 2022]:  # Only use years with known complete data
+            # Get the last race results first
             race_data = get_ergast_data("last/results", year)
             
             if not race_data or not race_data['MRData']['RaceTable']['Races']:
-                continue  # Try next year if no races found
-                
-            race = race_data['MRData']['RaceTable']['Races'][0]
-            race_id = race['round']
-            season = race['season']
-            
-            # Verify we have valid race data
-            if not race_id or not season:
                 continue
                 
+            race = race_data['MRData']['RaceTable']['Races'][0]
+            season = race['season']
+            race_id = race['round']
+            
             # Get top 5 drivers
             top_drivers = [result['Driver']['driverId'] for result in race['Results'][:5]]
             lap_data = {}
             
             for driver_id in top_drivers:
                 try:
-                    # Properly format the endpoint URL
-                    endpoint = f"{season}/{race_id}/drivers/{driver_id}/laps"
-                    driver_laps = get_ergast_data(endpoint, year)
+                    # Correct URL format: /api/f1/{season}/{round}/drivers/{id}/laps.json
+                    endpoint = f"{race_id}/drivers/{driver_id}/laps"
+                    driver_laps = get_ergast_data(endpoint, season)  # Pass season as year parameter
                     
                     if driver_laps and driver_laps['MRData']['RaceTable']['Races']:
                         laps = driver_laps['MRData']['RaceTable']['Races'][0].get('Laps', [])
@@ -156,7 +152,7 @@ def get_lap_times():
                     continue
 
             if lap_data:
-                response = {
+                return jsonify({
                     'race': {
                         'name': race['raceName'],
                         'round': race_id,
@@ -177,13 +173,12 @@ def get_lap_times():
                             for driver_id, laps in lap_data.items()
                         ]
                     }
-                }
-                return jsonify(response)
+                })
         
-        # If we get here, no data was found in any season
         return jsonify({
-            "error": "No lap time data available for recent seasons",
-            "available_seasons": [CURRENT_YEAR, PREVIOUS_YEAR, CURRENT_YEAR-1]
+            "error": "No lap time data available",
+            "available_seasons": [2023, 2022],
+            "note": "Ergast API has limited lap time data. Try specific race endpoints."
         }), 404
 
     except Exception as e:
@@ -192,6 +187,7 @@ def get_lap_times():
             "error": str(e),
             "message": "Failed to fetch lap times"
         }), 500
+    
 def convert_time_to_seconds(time_str):
     """Convert lap time string (1:23.456) to seconds (83.456)"""
     try:
