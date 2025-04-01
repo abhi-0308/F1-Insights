@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Constants
-CURRENT_YEAR = datetime.now().year
+CURRENT_YEAR = 2024
 PREVIOUS_YEAR = CURRENT_YEAR - 1
 ERGAST_API_BASE = "https://ergast.com/api/f1"
 CACHE_EXPIRY = 300  # 5 minutes
