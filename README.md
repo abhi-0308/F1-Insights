@@ -23,8 +23,7 @@ This project is a **Flask-based F1 Statistics Dashboard** that fetches and displ
 ##### driver comparision
 ![image](https://github.com/user-attachments/assets/9fcbd9b3-7382-465a-ad4b-6a141944939f)
 ![image](https://github.com/user-attachments/assets/2fa6c0db-feb9-4b0a-979f-9f71eac567a2)
-
-
+![image](https://github.com/user-attachments/assets/74bb95f7-40ef-45c8-911c-dd4b1b20e7d4)
 
 ## Future Improvements
 - Add more detailed race analytics.
